@@ -1,4 +1,4 @@
-# @bernardgaitho/sails-orientjs
+# sails-orientjs
 
 Provides easy access to `sails-orientjs` from Sails.js & Waterline.
 
@@ -12,7 +12,7 @@ Strict adherence to an adapter specification enables the (re)use of built-in gen
 To install this adapter, run:
 
 ```sh
-$ npm install @bernardgaitho/sails-orientjs
+$ npm install sails-orientjs
 ```
 
 Then [connect the adapter](https://sailsjs.com/documentation/reference/configuration/sails-config-datastores) to one or more of your app's datastores.
