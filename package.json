@@ -1,6 +1,6 @@
 {
-  "name": "@gaithoben/sails-orientjs",
-  "version": "0.0.0-development",
+  "name": "sails-orientjs",
+  "version": "0.0.1",
   "description": "A sails-orientjs adapter for Sails / Waterline",
   "main": "index.js",
   "scripts": {
