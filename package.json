@@ -23,9 +23,11 @@
     "orm",
     "database-adapter"
   ],
-  "module": "lib/index.js",
   "files": [
-    "lib",
+    "helpers",
+    "private",
+    "test",
+    "index.js",
     "README.md"
   ],
   "author": "Bernard Gaitho <gaithoben@gmail.com> (http://github.com/gaithoben)",
