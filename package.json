@@ -1,6 +1,6 @@
 {
   "name": "sails-orientjs",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A sails-orientjs adapter for Sails / Waterline",
   "main": "index.js",
   "scripts": {
@@ -42,6 +42,7 @@
     "machine": "^15.2.2",
     "orientjs": "3.0.5",
     "uniqid": "^5.0.3",
+    "waterline": "git+https://github.com/gaithoben/waterline.git",
     "waterline-utils": "^1.4.2"
   },
   "devDependencies": {

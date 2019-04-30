@@ -80,9 +80,10 @@ module.exports = require('machine').build({
     // build a SQL query.
     // See: https://github.com/treelinehq/waterline-query-docs for more info
     // on Waterline Query Statements.
+
     let statement;
     try {
-      statement = Converter({
+      statement = Helpers.query.compileStatement({
         model: query.using,
         method: 'count',
         criteria: query.criteria,
@@ -91,7 +92,8 @@ module.exports = require('machine').build({
       return exits.error(e);
     }
 
-    console.log('STATEMENT: ', statement);
+    console.log('COMPILED: ', statement);
+
     let session;
     let result;
     try {
@@ -110,14 +112,14 @@ module.exports = require('machine').build({
       result = await session
         .select('count(*)')
         .from(Helpers.query.capitalize(statement.from))
-        .where(statement.where)
+        .where(statement.whereClause)
         .scalar();
 
-      console.log('Results is: ', result);
+      Helpers.connection.releaseSession(session);
     } catch (error) {
       return exits.badConnection(error);
     }
 
-    exits.success(count);
+    exits.success(result);
   },
 });

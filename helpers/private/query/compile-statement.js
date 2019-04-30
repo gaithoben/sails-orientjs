@@ -126,7 +126,13 @@ module.exports = function compileStatement(options) {
         case '$in':
           str = getInStatement(value);
           return;
+        case 'in':
+          str = getInStatement(value);
+          return;
         case '$nin':
+          str = getNotInStatement(value);
+          return;
+        case 'nin':
           str = getNotInStatement(value);
           return;
         case '$between':
@@ -184,15 +190,19 @@ module.exports = function compileStatement(options) {
   }
 
   function selectValues(values) {
-    const vals = [...values] || [];
-    return [...values, '@rid'];
+    if (values && Array.isArray(values)) {
+      return [...values, '@rid'];
+    }
+
+    return ['@rid'];
   }
 
   const compiledcriteria = getAndStatement(statement);
 
   return {
-    ...passedcriteria,
     select: selectValues(passedcriteria.select),
+    from: model,
+    ...passedcriteria,
     selectClause: selectValues(passedcriteria.select).join(', '),
     whereClause: compiledcriteria,
   };

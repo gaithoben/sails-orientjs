@@ -101,8 +101,6 @@ module.exports = require('machine').build({
       return exits.error(error);
     }
 
-    console.log('Compiled Query: ', compiledquery);
-
     let result = [];
     let session;
     try {

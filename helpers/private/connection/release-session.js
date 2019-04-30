@@ -11,7 +11,7 @@
 
 const OrientDB = require('../../../private/machinepack-orient');
 
-module.exports = function releaseSession(session, leased) {
+module.exports = async function releaseSession(session, leased) {
   if (leased) {
     return setImmediate(() => null);
   }
