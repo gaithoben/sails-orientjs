@@ -68,6 +68,14 @@ module.exports = require('machine').build({
       return exits.invalidDatastore();
     }
 
+    // Grab the pk column name (for use below)
+    let pkColumnName;
+    try {
+      pkColumnName = WLModel.attributes[WLModel.primaryKey].columnName;
+    } catch (e) {
+      return exits.error(e);
+    }
+
     //  ╔═╗╔═╗╔╗╔╦  ╦╔═╗╦═╗╔╦╗  ┌┬┐┌─┐  ┌─┐┌┬┐┌─┐┌┬┐┌─┐┌┬┐┌─┐┌┐┌┌┬┐
     //  ║  ║ ║║║║╚╗╔╝║╣ ╠╦╝ ║    │ │ │  └─┐ │ ├─┤ │ ├┤ │││├┤ │││ │
     //  ╚═╝╚═╝╝╚╝ ╚╝ ╚═╝╩╚═ ╩    ┴ └─┘  └─┘ ┴ ┴ ┴ ┴ └─┘┴ ┴└─┘┘└┘ ┴
@@ -77,22 +85,12 @@ module.exports = require('machine').build({
     // See: https://github.com/treelinehq/waterline-query-docs for more info
     // on Waterline Query Statements.
 
-    let statement;
-    try {
-      statement = Helpers.query.converter({
-        model: query.using,
-        method: 'find',
-        criteria: query.criteria,
-      });
-    } catch (e) {
-      return exits.error(e);
-    }
-
     // // Compile the original Waterline Query
 
-    let compiledquery;
+    let statement;
     try {
-      compiledquery = Helpers.query.compileStatement({
+      statement = Helpers.query.compileStatement({
+        pkColumnName,
         model: query.using,
         method: 'find',
         criteria: query.criteria,
@@ -100,7 +98,6 @@ module.exports = require('machine').build({
     } catch (error) {
       return exits.error(error);
     }
-
     let result = [];
     let session;
     try {
@@ -118,9 +115,9 @@ module.exports = require('machine').build({
 
       // Execute sql using the driver acquired session.
       result = await session
-        .select(compiledquery.select)
+        .select(statement.selectClause)
         .from(`${Helpers.query.capitalize(statement.from)}`)
-        .where(compiledquery.whereClause)
+        .where(statement.whereClause ? statement.whereClause : {})
         .all();
 
       // Close Session

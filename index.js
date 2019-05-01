@@ -472,8 +472,7 @@ module.exports = {
         if (report) {
           return done(undefined, report.records);
         }
-
-        return done();
+        return done(undefined);
       },
     });
   },

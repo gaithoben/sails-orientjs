@@ -55,16 +55,14 @@ module.exports = require('machine').build({
   fn: async function destroy(inputs, exits) {
     // Dependencies
     const _ = require('@sailshq/lodash');
-    const WLUtils = require('waterline-utils');
     const Helpers = require('./private');
-    const Converter = WLUtils.query.converter;
 
     // Store the Query input for easier access
     const { query, models } = inputs;
     query.meta = query.meta || {};
 
     // Find the model definition
-    const WLModel = inputs.models[query.using];
+    const WLModel = models[query.using];
     if (!WLModel) {
       return exits.invalidDatastore();
     }
@@ -74,6 +72,14 @@ module.exports = require('machine').build({
 
     // Set a flag to determine if records are being returned
     let fetchRecords = false;
+
+    // Grab the pk column name (for use below)
+    let pkColumnName;
+    try {
+      pkColumnName = WLModel.attributes[WLModel.primaryKey].columnName;
+    } catch (e) {
+      return exits.error(e);
+    }
 
     //  ╔═╗╔═╗╔╗╔╦  ╦╔═╗╦═╗╔╦╗  ┌┬┐┌─┐  ┌─┐┌┬┐┌─┐┌┬┐┌─┐┌┬┐┌─┐┌┐┌┌┬┐
     //  ║  ║ ║║║║╚╗╔╝║╣ ╠╦╝ ║    │ │ │  └─┐ │ ├─┤ │ ├┤ │││├┤ │││ │
@@ -85,7 +91,7 @@ module.exports = require('machine').build({
     // on Waterline Query Statements.
     let statement;
     try {
-      statement = Converter({
+      statement = Helpers.query.compileStatement({
         model: query.using,
         method: 'destroy',
         criteria: query.criteria,
@@ -114,7 +120,6 @@ module.exports = require('machine').build({
 
     let session;
     let toDestroy = [];
-    let results;
 
     try {
       session = await Helpers.connection.spawnOrLeaseConnection(
@@ -122,19 +127,29 @@ module.exports = require('machine').build({
         query.meta,
       );
 
+      let secondaryWhereClause = statement.whereClause;
+
       if (fetchRecords) {
         toDestroy = await session
-          .select()
+          .select('*')
           .from(`${Helpers.query.capitalize(statement.from)}`)
-          .where(statement.where)
+          .where(statement.whereClause)
           .all();
+
+        const values = _.pluck(toDestroy, pkColumnName);
+
+        secondaryWhereClause = `${pkColumnName} IN [${values
+          .map(v => (Number(v) ? v : `'${v}'`))
+          .join(', ')}]`;
       }
 
-      results = await session
+      await session
         .delete()
         .from(Helpers.query.capitalize(statement.from))
-        .where(statement.where)
+        .where(secondaryWhereClause)
         .all();
+
+      Helpers.connection.releaseSession(session, leased);
     } catch (error) {
       return exits.badConnection(error);
     }

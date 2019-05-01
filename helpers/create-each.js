@@ -69,9 +69,7 @@ module.exports = require('machine').build({
     const { query } = inputs;
     // Dependencies
     const _ = require('@sailshq/lodash');
-    const utils = require('waterline-utils');
     const Helpers = require('./private');
-    const uniqid = require('uniqid');
 
     // Store the Query input for easier access
     query.meta = query.meta || {};
@@ -83,6 +81,17 @@ module.exports = require('machine').build({
     if (!WLModel) {
       return exits.invalidDatastore();
     }
+
+    // Grab the pk column name (for use below)
+    let pkColumnName;
+    try {
+      pkColumnName = WLModel.attributes[WLModel.primaryKey].columnName;
+    } catch (e) {
+      return exits.error(e);
+    }
+
+    // Set a flag if a leased connection from outside the adapter was used or not.
+    const leased = _.has(query.meta, 'leasedConnection');
 
     // Set a flag to determine if records are being returned
     let fetchRecords = false;
@@ -113,7 +122,8 @@ module.exports = require('machine').build({
     // on Waterline Query Statements.
     let statement;
     try {
-      statement = utils.query.converter({
+      statement = Helpers.query.compileStatement({
+        pkColumnName,
         model: query.using,
         method: 'createEach',
         values: newrecords,
@@ -131,17 +141,6 @@ module.exports = require('machine').build({
     if (_.has(query.meta, 'fetch') && query.meta.fetch) {
       fetchRecords = true;
     }
-
-    // Find the Primary Key
-    const primaryKeyField = WLModel.primaryKey;
-    const primaryKeyColumnName = WLModel.definition[primaryKeyField].columnName;
-
-    // Remove primary key if the value is NULL
-    _.each(statement.insert, (record) => {
-      if (_.isNull(record[primaryKeyColumnName])) {
-        statement.insert[primaryKeyColumnName] = uniqid(`${WLModel.identity}-`);
-      }
-    });
 
     //  ╔═╗╔═╗╔═╗╦ ╦╔╗╔  ┌─┐┌─┐┌┐┌┌┐┌┌─┐┌─┐┌┬┐┬┌─┐┌┐┌
     //  ╚═╗╠═╝╠═╣║║║║║║  │  │ │││││││├┤ │   │ ││ ││││
@@ -171,7 +170,7 @@ module.exports = require('machine').build({
         )} set`;
         const vals = [];
         _.each(record, (value, key) => {
-          vals.push(`${key} = '${value}'`);
+          vals.push(`${key} = ${Number(value) ? value : `'${value}'`}`);
         });
         sql += ` ${vals.join(', ')};\n`;
       });
@@ -188,6 +187,7 @@ module.exports = require('machine').build({
 
     // If `fetch` is NOT enabled, we're done.
     if (!fetchRecords) {
+      Helpers.connection.releaseSession(session, leased);
       return exits.success();
     } // -•
 
@@ -205,7 +205,7 @@ module.exports = require('machine').build({
         .from(Helpers.query.capitalize(WLModel.identity))
         .where('id in :ids')
         .all({ ids: newrecords.map(r => r.id) });
-      Helpers.connection.releaseSession(session);
+      Helpers.connection.releaseSession(session, leased);
     } catch (e) {
       return exits.error(e);
     }

@@ -61,7 +61,6 @@ module.exports = require('machine').build({
   fn: async function create(inputs, exits) {
     // Dependencies
     const _ = require('@sailshq/lodash');
-    const utils = require('waterline-utils');
     const Helpers = require('./private');
 
     // Store the Query input for easier access
@@ -74,6 +73,14 @@ module.exports = require('machine').build({
       return exits.invalidDatastore();
     }
 
+    // Grab the pk column name (for use below)
+    let pkColumnName;
+    try {
+      pkColumnName = WLModel.attributes[WLModel.primaryKey].columnName;
+    } catch (e) {
+      return exits.error(e);
+    }
+
     // Set a flag to determine if records are being returned
     let fetchRecords = true;
 
@@ -81,7 +88,6 @@ module.exports = require('machine').build({
     //  ╠═╝╠╦╝║╣───╠═╝╠╦╝║ ║║  ║╣ ╚═╗╚═╗  ├┬┘├┤ │  │ │├┬┘ ││└─┐
     //  ╩  ╩╚═╚═╝  ╩  ╩╚═╚═╝╚═╝╚═╝╚═╝╚═╝  ┴└─└─┘└─┘└─┘┴└──┴┘└─┘
     // Process each record to normalize output
-
     let newrecords = [];
     try {
       newrecords = Helpers.query.preProcessRecord({
@@ -103,7 +109,8 @@ module.exports = require('machine').build({
     // on Waterline Query Statements.
     let statement;
     try {
-      statement = utils.query.converter({
+      statement = Helpers.query.compileStatement({
+        pkColumnName,
         model: query.using,
         method: 'create',
         values: newrecords[0],
@@ -145,7 +152,7 @@ module.exports = require('machine').build({
       createdRecord = await session
         .insert()
         .into(Helpers.query.capitalize(statement.into))
-        .set(statement.insert)
+        .set(statement.valuesToSet)
         .one();
     } catch (err) {
       return exits.badConnection(err);

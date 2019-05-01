@@ -55,7 +55,6 @@ module.exports = require('machine').build({
   fn: async function count(inputs, exits) {
     // Dependencies
     const _ = require('@sailshq/lodash');
-    const Converter = require('waterline-utils').query.converter;
     const Helpers = require('./private');
 
     // Store the Query input for easier access
@@ -67,6 +66,14 @@ module.exports = require('machine').build({
     const WLModel = models[query.using];
     if (!WLModel) {
       return exits.invalidDatastore();
+    }
+
+    // Grab the pk column name (for use below)
+    let pkColumnName;
+    try {
+      pkColumnName = WLModel.attributes[WLModel.primaryKey].columnName;
+    } catch (e) {
+      return exits.error(e);
     }
 
     // Set a flag if a leased connection from outside the adapter was used or not.
@@ -84,6 +91,7 @@ module.exports = require('machine').build({
     let statement;
     try {
       statement = Helpers.query.compileStatement({
+        pkColumnName,
         model: query.using,
         method: 'count',
         criteria: query.criteria,
@@ -91,8 +99,6 @@ module.exports = require('machine').build({
     } catch (e) {
       return exits.error(e);
     }
-
-    console.log('COMPILED: ', statement);
 
     let session;
     let result;
@@ -115,11 +121,11 @@ module.exports = require('machine').build({
         .where(statement.whereClause)
         .scalar();
 
-      Helpers.connection.releaseSession(session);
+      Helpers.connection.releaseSession(session, leased);
     } catch (error) {
       return exits.badConnection(error);
     }
 
-    exits.success(result);
+    return exits.success(result);
   },
 });

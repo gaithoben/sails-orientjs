@@ -6,12 +6,19 @@
 const _ = require('@sailshq/lodash');
 
 module.exports = function compileStatement(options) {
-  const { model, method } = options;
+  const {
+    model, method, numericAttrName, values, pkColumnName,
+  } = options;
+
+  if (!pkColumnName) {
+    throw new Error(
+      'SQL Statement cannot compile because the pkColumnName is not passed',
+    );
+  }
 
   const passedcriteria = options.criteria;
 
   // Hold the final query value
-  const query = {};
 
   // Validate options
   if (!model) {
@@ -37,8 +44,6 @@ module.exports = function compileStatement(options) {
   }
 
   const statement = passedcriteria.where;
-
-  console.log('CRITERIA: ', passedcriteria);
 
   //   const statement = {
   //     FirstName: 'Ben',
@@ -149,7 +154,6 @@ module.exports = function compileStatement(options) {
     const criteria = [];
     const str = null;
     _.each(obj, (value, key) => {
-      console.log('KEY: ', key.toLowerCase());
       if (key.toLowerCase() === '$or') {
         criteria.push(`(${getOrStatement(value)})`);
         return;
@@ -189,21 +193,47 @@ module.exports = function compileStatement(options) {
     return orst.join(' OR ');
   }
 
-  function selectValues(values) {
-    if (values && Array.isArray(values)) {
-      return [...values, '@rid'];
+  function selectAttributes(vals) {
+    if (vals && Array.isArray(vals)) {
+      let fields = [...vals, '@rid'];
+      if (!_.includes(fields, pkColumnName)) {
+        fields = [...vals, '@rid', pkColumnName];
+      }
     }
 
-    return ['@rid'];
+    return ['@rid', pkColumnName];
+  }
+
+  function getNumericAttrName() {
+    if (numericAttrName) {
+      return numericAttrName;
+    }
+    return null;
   }
 
   const compiledcriteria = getAndStatement(statement);
 
-  return {
-    select: selectValues(passedcriteria.select),
-    from: model,
+  const obj = {
     ...passedcriteria,
-    selectClause: selectValues(passedcriteria.select).join(', '),
+    method,
+    select: selectAttributes(passedcriteria.select),
+    from: model,
+    model,
+    selectClause: selectAttributes(passedcriteria.select).join(', '),
     whereClause: compiledcriteria,
+    numericAttrName: getNumericAttrName(),
+    values: values || {},
   };
+
+  if (method === 'update') {
+    obj.valuesToSet = values || {};
+  }
+
+  if (method === 'create' || method === 'create-each') {
+    obj.valuesToSet = values || [];
+    obj.into = model;
+    obj.insert = values;
+  }
+
+  return obj;
 };

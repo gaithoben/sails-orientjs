@@ -61,9 +61,7 @@ module.exports = require('machine').build({
   fn: async function update(inputs, exits) {
     // Dependencies
     const _ = require('@sailshq/lodash');
-    const WLUtils = require('waterline-utils');
     const Helpers = require('./private');
-    const Converter = WLUtils.query.converter;
 
     const { query, models } = inputs;
 
@@ -76,16 +74,19 @@ module.exports = require('machine').build({
       return exits.invalidDatastore();
     }
 
+    // Grab the pk column name (for use below)
+    let pkColumnName;
+    try {
+      pkColumnName = WLModel.attributes[WLModel.primaryKey].columnName;
+    } catch (e) {
+      return exits.error(e);
+    }
+
     // Set a flag if a leased connection from outside the adapter was used or not.
     const leased = _.has(query.meta, 'leasedConnection');
 
     // Set a flag to determine if records are being returned
     let fetchRecords = false;
-
-    // Build a faux ORM for use in processEachRecords
-    const fauxOrm = {
-      collections: inputs.models,
-    };
 
     //  ╔═╗╦═╗╔═╗  ╔═╗╦═╗╔═╗╔═╗╔═╗╔═╗╔═╗  ┬─┐┌─┐┌─┐┌─┐┬─┐┌┬┐┌─┐
     //  ╠═╝╠╦╝║╣───╠═╝╠╦╝║ ║║  ║╣ ╚═╗╚═╗  ├┬┘├┤ │  │ │├┬┘ ││└─┐
@@ -113,7 +114,8 @@ module.exports = require('machine').build({
     // on Waterline Query Statements.
     let statement;
     try {
-      statement = Converter({
+      statement = Helpers.query.compileStatement({
+        pkColumnName,
         model: query.using,
         method: 'update',
         criteria: query.criteria,
@@ -162,18 +164,22 @@ module.exports = require('machine').build({
 
       //   const results = await session.command(sql).all();
 
-      await session
-        .update(`${Helpers.query.capitalize(WLModel.identity)}`)
-        .set(statement.update)
-        .where(statement.where)
-        .all();
+      console.log('UPDATE: ', statement);
+
+      let defferedresult = await session
+        .update(`${Helpers.query.capitalize(statement.model)}`)
+        .set(statement.valuesToSet);
+      if (statement.whereClause) {
+        defferedresult = defferedresult.where(statement.whereClause);
+      }
+      defferedresult.all();
     } catch (error) {
       return exits.badConnection(error);
     }
 
     // If `fetch` is NOT enabled, we're done.
     if (!fetchRecords) {
-      Helpers.connection.releaseSession(session);
+      Helpers.connection.releaseSession(session, leased);
       return exits.success();
     } // -•
 
@@ -186,13 +192,14 @@ module.exports = require('machine').build({
     // Process record(s) (mutate in-place) to wash away adapter-specific eccentricities.
     let updatedRecords = [];
     try {
-      updatedRecords = await session
+      const defferedresults = session
         .select()
-        .from(Helpers.query.capitalize(WLModel.identity))
-        .where(statement.where)
-        .all();
-      Helpers.connection.releaseSession(session);
-
+        .from(Helpers.query.capitalize(statement.model));
+      if (statement.whereClause) {
+        defferedresults.where(statement.whereClause);
+      }
+      updatedRecords = await defferedresults.all();
+      Helpers.connection.releaseSession(session, leased);
       _.each(updatedRecords, (record) => {
         Helpers.query.processNativeRecord(record, WLModel, query.meta);
       });

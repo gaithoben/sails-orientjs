@@ -55,7 +55,6 @@ module.exports = require('machine').build({
   fn: async function sum(inputs, exits) {
     // Dependencies
     const _ = require('@sailshq/lodash');
-    const Converter = require('waterline-utils').query.converter;
     const Helpers = require('./private');
 
     // Store the Query input for easier access
@@ -66,6 +65,14 @@ module.exports = require('machine').build({
     const WLModel = inputs.models[query.using];
     if (!WLModel) {
       return exits.invalidDatastore();
+    }
+
+    // Grab the pk column name (for use below)
+    let pkColumnName;
+    try {
+      pkColumnName = WLModel.attributes[WLModel.primaryKey].columnName;
+    } catch (e) {
+      return exits.error(e);
     }
 
     // Set a flag if a leased connection from outside the adapter was used or not.
@@ -79,20 +86,27 @@ module.exports = require('machine').build({
     // build a SQL query.
     // See: https://github.com/treelinehq/waterline-query-docs for more info
     // on Waterline Query Statements.
+
     let statement;
     try {
-      statement = Converter({
+      statement = Helpers.query.compileStatement({
         model: query.using,
         method: 'sum',
         criteria: query.criteria,
-        values: query.numericAttrName,
+        numericAttrName: query.numericAttrName,
       });
     } catch (e) {
       return exits.error(e);
     }
 
+    if (!statement.numericAttrName) {
+      return exits.badConnection(
+        new Error('The AttributeName for SUM in null or undefined'),
+      );
+    }
+
     let session;
-    let sum;
+    let result;
 
     try {
       session = await Helpers.connection.spawnOrLeaseConnection(
@@ -100,15 +114,22 @@ module.exports = require('machine').build({
         query.meta,
       );
 
-      sum = await session
-        .select(`sum(${statement.sum})`)
-        .from(Helpers.query.capitalize(statement.from.from))
-        .where(statement.from.where)
-        .scalar();
+      const isarray = Array.isArray(query.numericAttrName);
+      // Construct sql statement
 
-      console.log('SUM IS', sum);
+      const sql = `select ${isarray ? `${pkColumnName}, @rid, ` : ''} sum(${
+        statement.numericAttrName
+      }) as sum from ${Helpers.query.capitalize(statement.from)} where ${
+        statement.whereClause
+      }`;
+
+      result = await session.query(sql).all();
 
       Helpers.connection.releaseSession(session, leased);
-    } catch (error) {}
+    } catch (error) {
+      return exits.badConnection(error);
+    }
+
+    return exits.success(result);
   },
 });
