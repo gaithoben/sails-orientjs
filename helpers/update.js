@@ -164,15 +164,13 @@ module.exports = require('machine').build({
 
       //   const results = await session.command(sql).all();
 
-      console.log('UPDATE: ', statement);
-
-      let defferedresult = await session
+      let defferedresult = session
         .update(`${Helpers.query.capitalize(statement.model)}`)
         .set(statement.valuesToSet);
       if (statement.whereClause) {
         defferedresult = defferedresult.where(statement.whereClause);
       }
-      defferedresult.all();
+      await defferedresult.all();
     } catch (error) {
       return exits.badConnection(error);
     }

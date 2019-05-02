@@ -16,7 +16,7 @@ module.exports = function compileStatement(options) {
     );
   }
 
-  const passedcriteria = options.criteria;
+  const passedcriteria = options.criteria || {};
 
   // Hold the final query value
 
@@ -193,12 +193,22 @@ module.exports = function compileStatement(options) {
     return orst.join(' OR ');
   }
 
+  function hasSelectFields() {
+    if (Array.isArray(passedcriteria.select)) {
+      if (passedcriteria.length > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function selectAttributes(vals) {
     if (vals && Array.isArray(vals)) {
       let fields = [...vals, '@rid'];
       if (!_.includes(fields, pkColumnName)) {
         fields = [...vals, '@rid', pkColumnName];
       }
+      return fields;
     }
 
     return ['@rid', pkColumnName];
@@ -219,7 +229,9 @@ module.exports = function compileStatement(options) {
     select: selectAttributes(passedcriteria.select),
     from: model,
     model,
-    selectClause: selectAttributes(passedcriteria.select).join(', '),
+    selectClause: hasSelectFields()
+      ? selectAttributes(passedcriteria.select).join(', ')
+      : '*',
     whereClause: compiledcriteria,
     numericAttrName: getNumericAttrName(),
     values: values || {},
@@ -229,7 +241,7 @@ module.exports = function compileStatement(options) {
     obj.valuesToSet = values || {};
   }
 
-  if (method === 'create' || method === 'create-each') {
+  if (method === 'create' || method === 'createEach') {
     obj.valuesToSet = values || [];
     obj.into = model;
     obj.insert = values;

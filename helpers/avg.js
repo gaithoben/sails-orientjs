@@ -1,15 +1,15 @@
-//  ███████╗██╗   ██╗███╗   ███╗     █████╗  ██████╗████████╗██╗ ██████╗ ███╗   ██╗
-//  ██╔════╝██║   ██║████╗ ████║    ██╔══██╗██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║
-//  ███████╗██║   ██║██╔████╔██║    ███████║██║        ██║   ██║██║   ██║██╔██╗ ██║
-//  ╚════██║██║   ██║██║╚██╔╝██║    ██╔══██║██║        ██║   ██║██║   ██║██║╚██╗██║
-//  ███████║╚██████╔╝██║ ╚═╝ ██║    ██║  ██║╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║
-//  ╚══════╝ ╚═════╝ ╚═╝     ╚═╝    ╚═╝  ╚═╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+//   █████╗ ██╗   ██╗ ██████╗      █████╗  ██████╗████████╗██╗ ██████╗ ███╗   ██╗
+//  ██╔══██╗██║   ██║██╔════╝     ██╔══██╗██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║
+//  ███████║██║   ██║██║  ███╗    ███████║██║        ██║   ██║██║   ██║██╔██╗ ██║
+//  ██╔══██║╚██╗ ██╔╝██║   ██║    ██╔══██║██║        ██║   ██║██║   ██║██║╚██╗██║
+//  ██║  ██║ ╚████╔╝ ╚██████╔╝    ██║  ██║╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║
+//  ╚═╝  ╚═╝  ╚═══╝   ╚═════╝     ╚═╝  ╚═╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
 //
 
 module.exports = require('machine').build({
-  friendlyName: 'SUM',
+  friendlyName: 'AVG',
 
-  description: 'Return the SUM of the records matched by the query.',
+  description: 'Return the Average of the records matched by the query.',
 
   inputs: {
     datastore: {
@@ -37,7 +37,7 @@ module.exports = require('machine').build({
 
   exits: {
     success: {
-      description: 'The results of the sum query.',
+      description: 'The results of the avg query.',
       outputType: 'ref',
     },
 
@@ -52,17 +52,17 @@ module.exports = require('machine').build({
     },
   },
 
-  fn: async function sum(inputs, exits) {
+  fn: async function avg(inputs, exits) {
     // Dependencies
     const _ = require('@sailshq/lodash');
     const Helpers = require('./private');
 
     // Store the Query input for easier access
-    const { query } = inputs;
+    const { query, models } = inputs;
     query.meta = query.meta || {};
 
     // Find the model definition
-    const WLModel = inputs.models[query.using];
+    const WLModel = models[query.using];
     if (!WLModel) {
       return exits.invalidDatastore();
     }
@@ -86,13 +86,12 @@ module.exports = require('machine').build({
     // build a SQL query.
     // See: https://github.com/treelinehq/waterline-query-docs for more info
     // on Waterline Query Statements.
-
     let statement;
     try {
       statement = Helpers.query.compileStatement({
         pkColumnName,
         model: query.using,
-        method: 'sum',
+        method: 'avg',
         criteria: query.criteria,
         numericAttrName: query.numericAttrName,
       });
@@ -100,14 +99,16 @@ module.exports = require('machine').build({
       return exits.error(e);
     }
 
-    if (!statement.numericAttrName) {
-      return exits.badConnection(
-        new Error('The AttributeName for SUM in null or undefined'),
-      );
-    }
+    //  ╔═╗╔═╗╔═╗╦ ╦╔╗╔  ┌─┐┌─┐┌┐┌┌┐┌┌─┐┌─┐┌┬┐┬┌─┐┌┐┌
+    //  ╚═╗╠═╝╠═╣║║║║║║  │  │ │││││││├┤ │   │ ││ ││││
+    //  ╚═╝╩  ╩ ╩╚╩╝╝╚╝  └─┘└─┘┘└┘┘└┘└─┘└─┘ ┴ ┴└─┘┘└┘
+    //  ┌─┐┬─┐  ┬ ┬┌─┐┌─┐  ┬  ┌─┐┌─┐┌─┐┌─┐┌┬┐  ┌─┐┌─┐┌┐┌┌┐┌┌─┐┌─┐┌┬┐┬┌─┐┌┐┌
+    //  │ │├┬┘  │ │└─┐├┤   │  ├┤ ├─┤└─┐├┤  ││  │  │ │││││││├┤ │   │ ││ ││││
+    //  └─┘┴└─  └─┘└─┘└─┘  ┴─┘└─┘┴ ┴└─┘└─┘─┴┘  └─┘└─┘┘└┘┘└┘└─┘└─┘ ┴ ┴└─┘┘└┘
+    // Spawn a new connection for running queries on.
 
     let session;
-    let result;
+    let results;
 
     try {
       session = await Helpers.connection.spawnOrLeaseConnection(
@@ -115,22 +116,19 @@ module.exports = require('machine').build({
         query.meta,
       );
 
-      const isarray = Array.isArray(query.numericAttrName);
-      // Construct sql statement
-
-      const sql = `select ${isarray ? statement.selectClause : ''} sum(${
-        statement.numericAttrName
-      }) as sum from ${Helpers.query.capitalize(statement.from)} where ${
-        statement.whereClause
-      }`;
-
-      result = await session.query(sql).all();
+      let deffered = session
+        .select(`avg(${statement.numericAttrName})`)
+        .from(`${statement.from}`);
+      if (statement.whereClause) {
+        deffered = deffered.where(`${statement.whereClause}`);
+      }
+      results = await deffered.scalar();
 
       Helpers.connection.releaseSession(session, leased);
     } catch (error) {
       return exits.badConnection(error);
     }
 
-    return exits.success(result);
+    return exits.success(results);
   },
 });

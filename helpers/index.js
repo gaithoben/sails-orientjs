@@ -7,7 +7,11 @@ module.exports = {
   createEach: require('./create-each'),
   update: require('./update'),
   destroy: require('./destroy'),
-  sum: require('./sum'),
-
   count: require('./count'),
+  sum: require('./sum'),
+  avg: require('./avg'),
+
+  drop: require('./drop'),
+  define: require('./define'),
+  setSequence: require('./set-sequence'),
 };

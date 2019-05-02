@@ -12,4 +12,10 @@ module.exports = {
     converter: require('./query/converter'),
     compileStatement: require('./query/compile-statement'),
   },
+
+  // Helpers for dealing with underlying database schema
+  schema: {
+    buildSchema: require('./schema/build-schema'),
+    escapeTableName: require('./schema/escape-table-name'),
+  },
 };

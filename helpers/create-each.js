@@ -151,7 +151,7 @@ module.exports = require('machine').build({
     // Spawn a new connection for running queries on.
 
     let session;
-
+    let result;
     try {
       session = await Helpers.connection.spawnOrLeaseConnection(
         inputs.datastore,
@@ -180,8 +180,11 @@ module.exports = require('machine').build({
 
       //   const results = await session.batch(sql).all();
       //   createdRecords = _.flatten(results[0].value);
-      await session.batch(sql).all();
+      result = await session.batch(sql).all();
     } catch (error) {
+      if (session) {
+        Helpers.connection.releaseSession(session, leased);
+      }
       return exits.error(error);
     }
 

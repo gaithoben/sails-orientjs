@@ -73,8 +73,6 @@ module.exports = {
       return exits.failed(error);
     }
 
-    console.log('CLOSED CONNECTIONS');
-
     return exits.success({
       meta: inputs.meta,
     });

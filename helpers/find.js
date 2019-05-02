@@ -100,6 +100,7 @@ module.exports = require('machine').build({
     }
     let result = [];
     let session;
+
     try {
       //  ╔═╗╔═╗╔═╗╦ ╦╔╗╔  ┌─┐┌─┐┌┐┌┌┐┌┌─┐┌─┐┌┬┐┬┌─┐┌┐┌
       //  ╚═╗╠═╝╠═╣║║║║║║  │  │ │││││││├┤ │   │ ││ ││││
@@ -114,12 +115,14 @@ module.exports = require('machine').build({
       );
 
       // Execute sql using the driver acquired session.
-      result = await session
+      let deffered = session
         .select(statement.selectClause)
-        .from(`${Helpers.query.capitalize(statement.from)}`)
-        .where(statement.whereClause ? statement.whereClause : {})
-        .all();
+        .from(`${Helpers.query.capitalize(statement.from)}`);
+      if (statement.whereClause) {
+        deffered = deffered.where(statement.whereClause);
+      }
 
+      result = await deffered.all();
       // Close Session
       Helpers.connection.releaseSession(session);
     } catch (error) {
