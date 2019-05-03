@@ -9,14 +9,10 @@ const _ = require('@sailshq/lodash');
 // > This is set up in a dictionary instead of as separate variables
 // > just to allow the code below to be a bit easier to read)
 const DRY_MACHINES = {
-  verifyModelDef: require('./machines/verify-model-def'),
   createManager: require('./machines/create-manager'),
   destroyManager: require('./machines/destroy-manager'),
   getConnection: require('./machines/get-connection'),
   releaseConnection: require('./machines/release-connection'),
-  definePhysicalModel: require('./machines/define-physical-model'),
-  dropPhysicalModel: require('./machines/drop-physical-model'),
-  setPhysicalSequence: require('./machines/set-physical-sequence'),
 };
 
 // Private var to cache pre-built machines for certain adapter methods.

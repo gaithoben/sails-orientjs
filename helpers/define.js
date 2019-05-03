@@ -93,7 +93,7 @@ module.exports = require('machine').build({
       return exits.success(results);
     } catch (error) {
       if (session) {
-        Helpers.connection.releaseSession(session, leased);
+        await Helpers.connection.releaseSession(session, leased);
       }
       return exits.badConnection(error);
     }

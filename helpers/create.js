@@ -82,7 +82,7 @@ module.exports = require('machine').build({
     }
 
     // Set a flag to determine if records are being returned
-    let fetchRecords = true;
+    let fetchRecords = false;
 
     //  ╔═╗╦═╗╔═╗  ╔═╗╦═╗╔═╗╔═╗╔═╗╔═╗╔═╗  ┬─┐┌─┐┌─┐┌─┐┬─┐┌┬┐┌─┐
     //  ╠═╝╠╦╝║╣───╠═╝╠╦╝║ ║║  ║╣ ╚═╗╚═╗  ├┬┘├┤ │  │ │├┬┘ ││└─┐
@@ -107,6 +107,7 @@ module.exports = require('machine').build({
     // build a SQL query.
     // See: https://github.com/treelinehq/waterline-query-docs for more info
     // on Waterline Query Statements.
+
     let statement;
     try {
       statement = Helpers.query.compileStatement({
@@ -125,8 +126,8 @@ module.exports = require('machine').build({
     //  ┌┬┐┌─┐  ┬─┐┌─┐┌┬┐┬ ┬┬─┐┌┐┌
     //   │ │ │  ├┬┘├┤  │ │ │├┬┘│││
     //   ┴ └─┘  ┴└─└─┘ ┴ └─┘┴└─┘└┘
-    if (_.has(query.meta, 'fetch') && query.meta.fetch === false) {
-      fetchRecords = false;
+    if (_.has(query.meta, 'fetch') && query.meta.fetch) {
+      fetchRecords = true;
     }
 
     //  ╔═╗╔═╗╔═╗╦ ╦╔╗╔  ┌─┐┌─┐┌┐┌┌┐┌┌─┐┌─┐┌┬┐┬┌─┐┌┐┌
@@ -138,6 +139,7 @@ module.exports = require('machine').build({
     // Spawn a new connection for running queries on.
     let createdRecord = {};
     let session;
+
     try {
       session = await Helpers.connection.spawnOrLeaseConnection(
         inputs.datastore,
@@ -148,18 +150,24 @@ module.exports = require('machine').build({
       // Model the query OR INSERT USING THE  Query Builder! 👍🏽
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+      // eslint-disable-next-line no-console
+
       // Execute sql using the driver acquired session.
+
       createdRecord = await session
         .insert()
         .into(Helpers.query.capitalize(statement.into))
         .set(statement.valuesToSet)
         .one();
     } catch (err) {
+      if (session) {
+        // Close the Session.
+        await Helpers.connection.releaseSession(session);
+      }
       return exits.badConnection(err);
     }
-
     // Close the Session.
-    Helpers.connection.releaseSession(session);
+    await Helpers.connection.releaseSession(session);
 
     try {
       Helpers.query.processNativeRecord(createdRecord, WLModel, query.meta);

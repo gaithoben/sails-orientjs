@@ -117,14 +117,15 @@ module.exports = require('machine').build({
       );
 
       let deffered = session
-        .select(`avg(${statement.numericAttrName})`)
+        .select(`avg(${statement.numericAttrName}.asFloat())`)
         .from(`${statement.from}`);
       if (statement.whereClause) {
         deffered = deffered.where(`${statement.whereClause}`);
       }
+
       results = await deffered.scalar();
 
-      Helpers.connection.releaseSession(session, leased);
+      await Helpers.connection.releaseSession(session, leased);
     } catch (error) {
       return exits.badConnection(error);
     }

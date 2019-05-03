@@ -1,10 +1,10 @@
-#!/usr/bin/env node
+/* eslint-disable no-console */
 
 /**
  * Module dependencies
  */
 
-const TestRunner = require('waterline-adapter-tests');
+const TestRunner = require('waternile-adapter-tests');
 const packageMD = require('../package.json');
 const Adapter = require('../');
 
@@ -15,20 +15,20 @@ console.log(
     packageMD.waterlineAdapter.interfaces.length
   } interface(s) and ${
     packageMD.waterlineAdapter.features.length
-  } feature(s)...`
+  } feature(s)...`,
 );
 console.log(
-  `|   Interfaces:       ${packageMD.waterlineAdapter.interfaces.join(', ') ||
-    'n/a'}`
+  `|   Interfaces:       ${packageMD.waterlineAdapter.interfaces.join(', ')
+    || 'n/a'}`,
 );
 console.log(
-  `|   Extra features:   ${packageMD.waterlineAdapter.features.join(', ') ||
-    'n/a'}`
+  `|   Extra features:   ${packageMD.waterlineAdapter.features.join(', ')
+    || 'n/a'}`,
 );
 console.log();
 console.log('> More info about building Waterline adapters:');
 console.log(
-  '> https://sailsjs.com/docs/concepts/extending-sails/adapters/custom-adapters'
+  '> https://sailsjs.com/docs/concepts/extending-sails/adapters/custom-adapters',
 );
 
 // Ensure a `url` was specified.
@@ -42,7 +42,7 @@ if (!process.env.WATERLINE_ADAPTER_TESTS_URL) {
   console.error('For example:');
   console.error('```');
   console.error(
-    '    WATERLINE_ADAPTER_TESTS_URL=root@localhost:3306/testdb npm test'
+    '    WATERLINE_ADAPTER_TESTS_URL=root@localhost:3306/testdb npm test',
   );
   console.error('```');
   console.error('-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-x-');
@@ -52,6 +52,7 @@ if (!process.env.WATERLINE_ADAPTER_TESTS_URL) {
 // Use the `waterline-adapter-tests` module to
 // run mocha tests against the specified interfaces
 // of the currently-implemented Waterline adapter API.
+// eslint-disable-next-line no-new
 new TestRunner({
   // Load the adapter module.
   adapter: Adapter,

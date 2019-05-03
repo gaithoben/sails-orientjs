@@ -74,6 +74,7 @@ module.exports = require('machine').build({
 
       try {
         results = await session.batch(batch).all();
+        await Helpers.connection.releaseSession(session, leased);
       } catch (error) {
         if (error.code && error.code === 5) {
           await Helpers.connection.releaseSession(session, leased);
@@ -84,7 +85,7 @@ module.exports = require('machine').build({
       return exits.success(results);
     } catch (error) {
       if (session) {
-        Helpers.connection.releaseSession(session, leased);
+        await Helpers.connection.releaseSession(session, leased);
       }
       return exits.badConnection(error);
     }

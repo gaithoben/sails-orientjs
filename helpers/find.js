@@ -62,6 +62,8 @@ module.exports = require('machine').build({
     const { query } = inputs;
     query.meta = query.meta || {};
 
+    const leased = _.has(inputs.meta, 'leasedConnection');
+
     // Find the model definition
     const WLModel = inputs.models[query.using];
     if (!WLModel) {
@@ -86,6 +88,9 @@ module.exports = require('machine').build({
     // on Waterline Query Statements.
 
     // // Compile the original Waterline Query
+
+    // eslint-disable-next-line no-console
+    console.log('PASSED ', query.criteria);
 
     let statement;
     try {
@@ -121,11 +126,25 @@ module.exports = require('machine').build({
       if (statement.whereClause) {
         deffered = deffered.where(statement.whereClause);
       }
+      if (statement.limit) {
+        deffered = deffered.limit(statement.limit);
+      }
+
+      if (statement.skip) {
+        deffered = deffered.skip(statement.skip);
+      }
+
+      if (statement.sortClauseArray) {
+        deffered = deffered.order(statement.sortClauseArray);
+      }
 
       result = await deffered.all();
       // Close Session
-      Helpers.connection.releaseSession(session);
+      await Helpers.connection.releaseSession(session, leased);
     } catch (error) {
+      if (session) {
+        await Helpers.connection.releaseSession(session, leased);
+      }
       return exits.badConnection(error);
     }
 
@@ -140,9 +159,9 @@ module.exports = require('machine').build({
       _.each(selectRecords, (nativeRecord) => {
         Helpers.query.processNativeRecord(nativeRecord, WLModel, query.meta);
       });
+      return exits.success({ records: selectRecords });
     } catch (e) {
       return exits.error(e);
     }
-    return exits.success({ records: selectRecords });
   },
 });

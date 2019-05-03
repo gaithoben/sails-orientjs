@@ -1,3 +1,5 @@
+/* eslint-disable brace-style */
+/* eslint-disable import/no-extraneous-dependencies */
 /**
  * Module dependencies
  */
@@ -13,7 +15,6 @@ const normalizeUser = require('./private/normalize-user');
 const normalizePort = require('./private/normalize-port');
 const normalizeHost = require('./private/normalize-host');
 const normalizePassword = require('./private/normalize-password');
-
 
 /**
  * normalizeDatastoreConfig()
@@ -54,12 +55,21 @@ const normalizePassword = require('./private/normalize-password');
  * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  */
 
-module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expectedProtocolPrefix) {
+module.exports = function normalizeDatastoreConfig(
+  dsConfig,
+  whitelist,
+  expectedProtocolPrefix,
+) {
   // Sanity checks
   assert(_.isObject(dsConfig), '`dsConfig` should exist and be a dictionary!');
-  assert(_.isUndefined(whitelist) || _.isArray(whitelist), 'If provided, 2nd argument should be a whitelist of valid custom settings-- e.g. [\'ssl\', \'replicaSet\']');
-  assert(_.isUndefined(expectedProtocolPrefix) || _.isString(expectedProtocolPrefix), 'If provided, 3rd argument should be a string (e.g. "mongodb") representing the prefix for the expected protocol.');
-
+  assert(
+    _.isUndefined(whitelist) || _.isArray(whitelist),
+    "If provided, 2nd argument should be a whitelist of valid custom settings-- e.g. ['ssl', 'replicaSet']",
+  );
+  assert(
+    _.isUndefined(expectedProtocolPrefix) || _.isString(expectedProtocolPrefix),
+    'If provided, 3rd argument should be a string (e.g. "mongodb") representing the prefix for the expected protocol.',
+  );
 
   // Default top-level things.
   // If items in BASELINE_PROPS are included in the querystring of the connection url,
@@ -81,7 +91,6 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
   // // Get convenient reference to this datastore's name.
   // var datastoreName = dsConfig.identity;
 
-
   // Have a look at the datastore config to get an idea of what's there.
   const hasUrl = !_.isUndefined(dsConfig.url);
   const hasUserOverride = !_.isUndefined(dsConfig.user);
@@ -89,7 +98,6 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
   const hasHostOverride = !_.isUndefined(dsConfig.host);
   const hasPortOverride = !_.isUndefined(dsConfig.port);
   const hasDatabaseOverride = !_.isUndefined(dsConfig.database);
-
 
   //  ┌┐┌┌─┐┬─┐┌┬┐┌─┐┬  ┬┌─┐┌─┐  ╔═╗╦  ╦╔═╗╦═╗╦═╗╦╔╦╗╔═╗╔═╗
   //  ││││ │├┬┘│││├─┤│  │┌─┘├┤   ║ ║╚╗╔╝║╣ ╠╦╝╠╦╝║ ║║║╣ ╚═╗
@@ -125,16 +133,20 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     }
   } catch (e) {
     switch (e.code) {
-      case 'E_BAD_CONFIG': throw flaverr('E_BAD_CONFIG', new Error(
-        `Invalid override specified.  ${e.message}\n`
-        + '--\n'
-        + 'Please correct this and try again...  Or better yet, specify a `url`!  '
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
-      default: throw e;
+      case 'E_BAD_CONFIG':
+        throw flaverr(
+          'E_BAD_CONFIG',
+          new Error(
+            `Invalid override specified.  ${e.message}\n`
+              + '--\n'
+              + 'Please correct this and try again...  Or better yet, specify a `url`!  '
+              + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+          ),
+        );
+      default:
+        throw e;
     }
-  }// </catch>
-
+  } // </catch>
 
   // Strip out any overrides w/ undefined values.
   // (And along the way, check overrides against whitelist if relevant)
@@ -144,22 +156,28 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
       delete dsConfig[key];
     }
 
-    if (whitelist && !_.contains(whitelist, key) && !_.contains(BASELINE_PROPS, key)) {
+    if (
+      whitelist
+      && !_.contains(whitelist, key)
+      && !_.contains(BASELINE_PROPS, key)
+    ) {
       unrecognizedKeys = unrecognizedKeys || [];
       unrecognizedKeys.push(key);
     }
   });
 
   if (unrecognizedKeys) {
-    throw flaverr('E_BAD_CONFIG', new Error(
-      `Unrecognized options (\`${unrecognizedKeys}\`) specified as config overrides.\n`
-      + 'This adapter expects only whitelisted properties.\n'
-      + '--\n'
-      + 'See http://sailsjs.com/config/datastores#?the-connection-url for info,\n'
-      + 'or visit https://sailsjs.com/support for more help.',
-    ));
+    throw flaverr(
+      'E_BAD_CONFIG',
+      new Error(
+        `Unrecognized options (\`${unrecognizedKeys}\`) specified as config overrides.\n`
+          + 'This adapter expects only whitelisted properties.\n'
+          + '--\n'
+          + 'See http://sailsjs.com/config/datastores#?the-connection-url for info,\n'
+          + 'or visit https://sailsjs.com/support for more help.',
+      ),
+    );
   }
-
 
   //  ┬ ┬┌─┐┌┐┌┌┬┐┬  ┌─┐  ┌─┐┌┐ ┌─┐┌─┐┌┐┌┌─┐┌─┐  ┌─┐┌─┐  ┬ ┬┬─┐┬
   //  ├─┤├─┤│││ │││  ├┤   ├─┤├┴┐└─┐├┤ ││││  ├┤   │ │├┤   │ │├┬┘│
@@ -182,26 +200,32 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     } else if (!hasPasswordOverride && hasUserOverride) {
       inventedUrl += `${dsConfig.user}@`;
     } else if (hasPasswordOverride && !hasUserOverride) {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        'No `url` was specified, so tried to infer an appropriate connection URL from other properties.  '
-        + 'However, it looks like a `password` was specified, but no `user` was specified to go along with it.\n'
-        + '--\n'
-        + 'Please remove `password` or also specify a `user`.  Or better yet, specify a `url`!  '
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          'No `url` was specified, so tried to infer an appropriate connection URL from other properties.  '
+            + 'However, it looks like a `password` was specified, but no `user` was specified to go along with it.\n'
+            + '--\n'
+            + 'Please remove `password` or also specify a `user`.  Or better yet, specify a `url`!  '
+            + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+        ),
+      );
     }
 
     // If a host was specified, use it.
     if (hasHostOverride) {
       inventedUrl += dsConfig.host;
     } else {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        `${'No `url` was specified, and no appropriate connection URL can be inferred (tried to use '
-        + '`host: '}${util.inspect(dsConfig.host)}\`).\n`
-        + '--\n'
-        + 'Please specify a `host`...  Or better yet, specify a `url`!  '
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          `${'No `url` was specified, and no appropriate connection URL can be inferred (tried to use '
+            + '`host: '}${util.inspect(dsConfig.host)}\`).\n`
+            + '--\n'
+            + 'Please specify a `host`...  Or better yet, specify a `url`!  '
+            + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+        ),
+      );
       // Or alternatively...
       // ```
       // inventedUrl += 'localhost';
@@ -217,13 +241,16 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     if (hasDatabaseOverride) {
       inventedUrl += `/${dsConfig.database}`;
     } else {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        `${'No `url` was specified, and no appropriate connection URL can be inferred (tried to use '
-        + '`database: '}${util.inspect(dsConfig.database)}\`).\n`
-        + '--\n'
-        + 'Please specify a `database`...  Or better yet, specify a `url`!  '
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          `${'No `url` was specified, and no appropriate connection URL can be inferred (tried to use '
+            + '`database: '}${util.inspect(dsConfig.database)}\`).\n`
+            + '--\n'
+            + 'Please specify a `database`...  Or better yet, specify a `url`!  '
+            + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+        ),
+      );
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - -
@@ -246,11 +273,14 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
   else {
     // Perform a basic sanity check & string coercion.
     if (!_.isString(dsConfig.url) || dsConfig.url === '') {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        'Invalid `url` specified.  Must be a non-empty string.\n'
-        + '--\n'
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          'Invalid `url` specified.  Must be a non-empty string.\n'
+            + '--\n'
+            + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+        ),
+      );
     }
 
     // Before beginning to do further string parsing, look for a little loophole:
@@ -265,7 +295,7 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
       // TODO: Implement explicit parsing for this kind of URL instead of just bailing silently.
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       return;
-    }// •
+    } // •
 
     // IWMIH, this is the general case where we're actually going to validate the URL like normal.
 
@@ -276,7 +306,10 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     // > See https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax
     let urlToParse;
     if (dsConfig.url.match(/^:\/\//)) {
-      urlToParse = dsConfig.url.replace(/^:\/\//, `${expectedProtocolPrefix || 'db'}://`);
+      urlToParse = dsConfig.url.replace(
+        /^:\/\//,
+        `${expectedProtocolPrefix || 'db'}://`,
+      );
     } else if (!dsConfig.url.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//)) {
       urlToParse = `${expectedProtocolPrefix || 'db'}://${dsConfig.url}`;
     } else {
@@ -289,33 +322,41 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     // Now attempt to parse out the URL's pieces and validate each one.
     const parsedConnectionStr = url.parse(urlToParse);
 
-
     // Ensure a valid protocol.
 
     // Validate that a protocol was found before other pieces
     // (otherwise other parsed info could be very weird and wrong)
     if (!parsedConnectionStr.protocol) {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        `Could not parse provided URL (${util.inspect(dsConfig.url, { depth: 5 })}).\n`
-        + '(If you continue to experience issues, try checking that the URL begins with an '
-        + 'appropriate protocol; e.g. `mysql://` or `mongo://`.\n'
-        + '--\n'
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          `Could not parse provided URL (${util.inspect(dsConfig.url, {
+            depth: 5,
+          })}).\n`
+            + '(If you continue to experience issues, try checking that the URL begins with an '
+            + 'appropriate protocol; e.g. `mysql://` or `mongo://`.\n'
+            + '--\n'
+            + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+        ),
+      );
     }
 
     // If relevant, validate that the RIGHT protocol was found.
     if (expectedProtocolPrefix) {
       if (parsedConnectionStr.protocol !== `${expectedProtocolPrefix}:`) {
-        throw flaverr('E_BAD_CONFIG', new Error(
-          `Provided URL (${util.inspect(dsConfig.url, { depth: 5 })}) has an invalid protocol.\n`
-          + `If included, the protocol must be "${expectedProtocolPrefix}://".\n`
-          + '--\n'
-          + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-        ));
+        throw flaverr(
+          'E_BAD_CONFIG',
+          new Error(
+            `Provided URL (${util.inspect(dsConfig.url, {
+              depth: 5,
+            })}) has an invalid protocol.\n`
+              + `If included, the protocol must be "${expectedProtocolPrefix}://".\n`
+              + '--\n'
+              + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+          ),
+        );
       }
-    }// >-
-
+    } // >-
 
     // Parse authentication credentials from url, if specified.
     let userInUrl;
@@ -323,13 +364,14 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     if (parsedConnectionStr.auth && _.isString(parsedConnectionStr.auth)) {
       const authPieces = parsedConnectionStr.auth.split(/:/);
       if (authPieces[0]) {
+        // eslint-disable-next-line prefer-destructuring
         userInUrl = authPieces[0];
-      }// >-
+      } // >-
       if (authPieces[1]) {
+        // eslint-disable-next-line prefer-destructuring
         passwordInUrl = authPieces[1];
       }
     }
-
 
     // Parse the rest of the standard information from the URL.
     const hostInUrl = parsedConnectionStr.hostname;
@@ -341,12 +383,14 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     try {
       miscOptsInUrlQs = qs.parse(parsedConnectionStr.query);
     } catch (e) {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        `Could not parse query string from URL: \`${dsConfig.url}\`.  `
-        + `Details: ${e.stack}`,
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          `Could not parse query string from URL: \`${dsConfig.url}\`.  `
+            + `Details: ${e.stack}`,
+        ),
+      );
     }
-
 
     // Now normalize + restore parsed values back into overrides.
     // > • Note that we prefer overrides to URL data here.
@@ -374,13 +418,16 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
 
       _.each(miscOptsInUrlQs, (val, key) => {
         if (whitelist && !_.contains(whitelist, key)) {
-          throw flaverr('E_BAD_CONFIG', new Error(
-            `Unrecognized option (\`${key}\`) specified in query string of connection URL.\n`
-            + '(This adapter expects only standard, whitelisted properties.)\n'
-            + '--\n'
-            + 'See http://sailsjs.com/config/datastores#?the-connection-url for info, or visit\n)'
-            + 'https://sailsjs.com/support for more help.',
-          ));
+          throw flaverr(
+            'E_BAD_CONFIG',
+            new Error(
+              `Unrecognized option (\`${key}\`) specified in query string of connection URL.\n`
+                + '(This adapter expects only standard, whitelisted properties.)\n'
+                + '--\n'
+                + 'See http://sailsjs.com/config/datastores#?the-connection-url for info, or visit\n)'
+                + 'https://sailsjs.com/support for more help.',
+            ),
+          );
         }
 
         if (_.contains(BASELINE_PROPS, key)) {
@@ -402,19 +449,23 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
         } else if (_.isUndefined(dsConfig[key])) {
           dsConfig[key] = val;
         }
-      });// </_.each()>
+      }); // </_.each()>
     } catch (e) {
       switch (e.code) {
-        case 'E_BAD_CONFIG': throw flaverr('E_BAD_CONFIG', new Error(
-          `Could not process connection url.  ${e.message}\n`
-          + '--\n'
-          + 'Please correct this and try again.\n'
-          + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-        ));
-        default: throw e;
+        case 'E_BAD_CONFIG':
+          throw flaverr(
+            'E_BAD_CONFIG',
+            new Error(
+              `Could not process connection url.  ${e.message}\n`
+                + '--\n'
+                + 'Please correct this and try again.\n'
+                + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+            ),
+          );
+        default:
+          throw e;
       }
-    }// </catch>
-
+    } // </catch>
 
     // And finally, rebuild the URL
     let rebuiltUrl = '';
@@ -428,12 +479,15 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     } else if (!dsConfig.password && dsConfig.user) {
       rebuiltUrl += `${dsConfig.user}@`;
     } else if (dsConfig.password && !dsConfig.user) {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        'It looks like a `password` was specified, but no `user` was specified to go along with it.\n'
-        + '--\n'
-        + 'Please remove `password` or also specify a `user`.  '
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          'It looks like a `password` was specified, but no `user` was specified to go along with it.\n'
+            + '--\n'
+            + 'Please remove `password` or also specify a `user`.  '
+            + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+        ),
+      );
     }
 
     // If a host was specified in the url OR as an override, use it.
@@ -441,13 +495,16 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     if (dsConfig.host) {
       rebuiltUrl += dsConfig.host;
     } else {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        `${'No host could be determined from configuration (tried to use '
-        + '`host: '}${util.inspect(dsConfig.host)}\`).\n`
-        + '--\n'
-        + 'Please specify a `host` or, better yet, include it in the `url`.  '
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          `${'No host could be determined from configuration (tried to use '
+            + '`host: '}${util.inspect(dsConfig.host)}\`).\n`
+            + '--\n'
+            + 'Please specify a `host` or, better yet, include it in the `url`.  '
+            + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+        ),
+      );
       // Or alternatively...
       // ```
       // rebuiltUrl += 'localhost';
@@ -465,15 +522,17 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     if (dsConfig.database) {
       rebuiltUrl += `/${dsConfig.database}`;
     } else {
-      throw flaverr('E_BAD_CONFIG', new Error(
-        `${'No database could be determined from configuration (tried to use '
-        + '`database: '}${util.inspect(dsConfig.database)}\`).\n`
-        + '--\n'
-        + 'Please specify a `database` or, better yet, include it in the `url`.  '
-        + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
-      ));
+      throw flaverr(
+        'E_BAD_CONFIG',
+        new Error(
+          `${'No database could be determined from configuration (tried to use '
+            + '`database: '}${util.inspect(dsConfig.database)}\`).\n`
+            + '--\n'
+            + 'Please specify a `database` or, better yet, include it in the `url`.  '
+            + '(See http://sailsjs.com/config/datastores#?the-connection-url for more info.)',
+        ),
+      );
     }
-
 
     // Reattach any non-standard querystring options from the URL.
     // > If there were any non-standard options, we'll **LEAVE THEM IN** the URL
@@ -483,7 +542,6 @@ module.exports = function normalizeDatastoreConfig(dsConfig, whitelist, expected
     if (newQs.length > 0) {
       rebuiltUrl += `?${newQs}`;
     }
-
 
     // Now save our rebuilt URL as `url`.
     dsConfig.url = rebuiltUrl;

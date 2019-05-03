@@ -19,6 +19,7 @@ const OrientDB = require('../../../private/machinepack-orient');
 module.exports = function spawnConnection(datastore) {
   return new Promise((resolve, reject) => {
     // Validate datastore
+
     if (!datastore || !datastore.manager || !datastore.config) {
       reject(new Error('Spawn Connection requires a valid datastore.'));
     }
@@ -39,7 +40,7 @@ module.exports = function spawnConnection(datastore) {
           const session = await connection.pool.acquire();
           resolve(session);
         } catch (error) {
-          resolve(error);
+          reject(error);
         }
       },
     });

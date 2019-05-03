@@ -120,6 +120,7 @@ module.exports = require('machine').build({
     // build a SQL query.
     // See: https://github.com/treelinehq/waterline-query-docs for more info
     // on Waterline Query Statements.
+
     let statement;
     try {
       statement = Helpers.query.compileStatement({
@@ -150,8 +151,20 @@ module.exports = require('machine').build({
     //  └─┘┴└─  └─┘└─┘└─┘  ┴─┘└─┘┴ ┴└─┘└─┘─┴┘  └─┘└─┘┘└┘┘└┘└─┘└─┘ ┴ ┴└─┘┘└┘
     // Spawn a new connection for running queries on.
 
+    function specialValue(val) {
+      if (_.isObject(val)) {
+        return JSON.stringify(val);
+      }
+      if (Number(val)) {
+        return val;
+      }
+      if (_.isString(val)) {
+        return `'${val}'`;
+      }
+      return val;
+    }
+
     let session;
-    let result;
     try {
       session = await Helpers.connection.spawnOrLeaseConnection(
         inputs.datastore,
@@ -170,7 +183,7 @@ module.exports = require('machine').build({
         )} set`;
         const vals = [];
         _.each(record, (value, key) => {
-          vals.push(`${key} = ${Number(value) ? value : `'${value}'`}`);
+          vals.push(`${key} = ${specialValue(value)}`);
         });
         sql += ` ${vals.join(', ')};\n`;
       });
@@ -180,19 +193,20 @@ module.exports = require('machine').build({
 
       //   const results = await session.batch(sql).all();
       //   createdRecords = _.flatten(results[0].value);
-      result = await session.batch(sql).all();
+      await session.batch(sql).all();
     } catch (error) {
       if (session) {
-        Helpers.connection.releaseSession(session, leased);
+        await Helpers.connection.releaseSession(session, leased);
       }
       return exits.error(error);
     }
 
     // If `fetch` is NOT enabled, we're done.
+
     if (!fetchRecords) {
-      Helpers.connection.releaseSession(session, leased);
+      await Helpers.connection.releaseSession(session, leased);
       return exits.success();
-    } // -•
+    }
 
     // Otherwise, IWMIH we'll be sending back records:
     // ============================================
@@ -205,11 +219,15 @@ module.exports = require('machine').build({
     try {
       createdRecords = await session
         .select()
-        .from(Helpers.query.capitalize(WLModel.identity))
-        .where('id in :ids')
-        .all({ ids: newrecords.map(r => r.id) });
-      Helpers.connection.releaseSession(session, leased);
+        .from(Helpers.query.capitalize(statement.model))
+        .where(`${pkColumnName} in :ids`)
+        .all({ ids: newrecords.map(r => r[pkColumnName]) });
+
+      await Helpers.connection.releaseSession(session, leased);
     } catch (e) {
+      if (session) {
+        await Helpers.connection.releaseSession(session, leased);
+      }
       return exits.error(e);
     }
 
@@ -220,7 +238,6 @@ module.exports = require('machine').build({
     } catch (e) {
       return exits.error(e);
     }
-
     return exits.success({ records: createdRecords });
   },
 });

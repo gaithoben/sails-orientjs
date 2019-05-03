@@ -92,6 +92,10 @@ module.exports = require('machine').build({
     //  ╠═╝╠╦╝║╣───╠═╝╠╦╝║ ║║  ║╣ ╚═╗╚═╗  ├┬┘├┤ │  │ │├┬┘ ││└─┐
     //  ╩  ╩╚═╚═╝  ╩  ╩╚═╚═╝╚═╝╚═╝╚═╝╚═╝  ┴└─└─┘└─┘└─┘┴└──┴┘└─┘
     // Process each record to normalize output
+
+    // Check if the pkField was set. This will avoid auto generation of new ids and deleting the key
+    const shouldUpdatePk = Boolean(query.valuesToSet[pkColumnName]);
+
     try {
       Helpers.query.preProcessRecord({
         records: [query.valuesToSet],
@@ -99,7 +103,9 @@ module.exports = require('machine').build({
         model: WLModel,
       });
 
-      delete query.valuesToSet.id;
+      if (!shouldUpdatePk) {
+        delete query.valuesToSet[pkColumnName];
+      }
     } catch (e) {
       return exits.error(e);
     }
@@ -124,6 +130,10 @@ module.exports = require('machine').build({
     } catch (e) {
       return exits.error(e);
     }
+
+    const criteria = query.criteria.where || query.criteria;
+    const oldpk = criteria[pkColumnName] || '';
+    const newpk = statement.valuesToSet[pkColumnName] || '';
 
     //  ╔╦╗╔═╗╔╦╗╔═╗╦═╗╔╦╗╦╔╗╔╔═╗  ┬ ┬┬ ┬┬┌─┐┬ ┬  ┬  ┬┌─┐┬  ┬ ┬┌─┐┌─┐
     //   ║║║╣  ║ ║╣ ╠╦╝║║║║║║║║╣   │││├─┤││  ├─┤  └┐┌┘├─┤│  │ │├┤ └─┐
@@ -172,12 +182,15 @@ module.exports = require('machine').build({
       }
       await defferedresult.all();
     } catch (error) {
+      if (session) {
+        await Helpers.connection.releaseSession(session, leased);
+      }
       return exits.badConnection(error);
     }
 
     // If `fetch` is NOT enabled, we're done.
     if (!fetchRecords) {
-      Helpers.connection.releaseSession(session, leased);
+      await Helpers.connection.releaseSession(session, leased);
       return exits.success();
     } // -•
 
@@ -190,21 +203,30 @@ module.exports = require('machine').build({
     // Process record(s) (mutate in-place) to wash away adapter-specific eccentricities.
     let updatedRecords = [];
     try {
-      const defferedresults = session
+      // If new primary ke was set, update the where clause!
+      let newWhereClause = statement.whereClause;
+      if (shouldUpdatePk && oldpk) {
+        newWhereClause = `${statement.whereClause}`.replace(oldpk, newpk);
+      }
+
+      let defferedresults = session
         .select()
         .from(Helpers.query.capitalize(statement.model));
-      if (statement.whereClause) {
-        defferedresults.where(statement.whereClause);
+      if (newWhereClause) {
+        defferedresults = defferedresults.where(newWhereClause);
       }
       updatedRecords = await defferedresults.all();
-      Helpers.connection.releaseSession(session, leased);
+
+      await Helpers.connection.releaseSession(session, leased);
       _.each(updatedRecords, (record) => {
         Helpers.query.processNativeRecord(record, WLModel, query.meta);
       });
+      return exits.success({ records: updatedRecords });
     } catch (e) {
+      if (session) {
+        await Helpers.connection.releaseSession(session, leased);
+      }
       return exits.error(e);
     }
-
-    return exits.success({ records: updatedRecords });
   },
 });

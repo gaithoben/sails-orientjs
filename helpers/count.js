@@ -121,7 +121,7 @@ module.exports = require('machine').build({
         .where(statement.whereClause)
         .scalar();
 
-      Helpers.connection.releaseSession(session, leased);
+      await Helpers.connection.releaseSession(session, leased);
     } catch (error) {
       return exits.badConnection(error);
     }

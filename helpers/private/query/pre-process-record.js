@@ -58,7 +58,6 @@ module.exports = function preProcessRecord(options) {
   const { records, identity, model } = options;
 
   const primaryKeyColumnName = model.attributes[model.primaryKey].columnName;
-
   let newrecords = [];
 
   try {

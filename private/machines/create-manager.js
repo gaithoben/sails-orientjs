@@ -78,8 +78,7 @@ module.exports = {
     },
   },
 
-  fn({ config, meta }, exits) {
-    const _ = require('@sailshq/lodash');
+  fn({ config /* meta */ }, exits) {
     const { OrientDBClient } = require('orientjs');
 
     OrientDBClient.connect({
@@ -95,7 +94,7 @@ module.exports = {
             password: config.password,
             pool: { max: 10 },
           });
-          // Finally, build and return the manager.
+
           const mgr = {
             client,
             pool,

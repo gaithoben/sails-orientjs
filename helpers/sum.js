@@ -118,16 +118,35 @@ module.exports = require('machine').build({
       const isarray = Array.isArray(query.numericAttrName);
       // Construct sql statement
 
-      const sql = `select ${isarray ? statement.selectClause : ''} sum(${
-        statement.numericAttrName
-      }) as sum from ${Helpers.query.capitalize(statement.from)} where ${
-        statement.whereClause
-      }`;
+      let sql = '';
 
-      result = await session.query(sql).all();
+      if (isarray) {
+        sql = `select ${statement.selectClause} sum(${
+          statement.numericAttrName
+        }) as sum from ${Helpers.query.capitalize(statement.from)} where ${
+          statement.whereClause
+        }`;
+      } else {
+        sql = `select sum(${
+          statement.numericAttrName
+        }) as sum from ${Helpers.query.capitalize(statement.from)} where ${
+          statement.whereClause
+        }`;
+      }
 
-      Helpers.connection.releaseSession(session, leased);
+      const deffered = session.query(sql);
+      if (isarray) {
+        result = await deffered.all();
+      } else {
+        result = await deffered.one();
+        result = result.sum || 0;
+      }
+
+      await Helpers.connection.releaseSession(session, leased);
     } catch (error) {
+      if (session) {
+        await Helpers.connection.releaseSession(session, leased);
+      }
       return exits.badConnection(error);
     }
 

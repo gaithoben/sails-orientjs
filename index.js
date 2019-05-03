@@ -194,7 +194,6 @@ module.exports = {
       models,
       modelDefinitions: registeredModels,
     });
-
     return done(undefined, datastoreConfig);
   },
 

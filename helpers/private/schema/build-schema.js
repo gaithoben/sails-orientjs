@@ -18,7 +18,10 @@ module.exports = function buildSchema(tableName, definition) {
   //  ║║║║ ║╠╦╝║║║╠═╣║  ║╔═╝║╣    │ └┬┘├─┘├┤
   //  ╝╚╝╚═╝╩╚═╩ ╩╩ ╩╩═╝╩╚═╝╚═╝   ┴  ┴ ┴  └─┘
   // TODO: move this code inline to eliminate unnecessary function declaration
-  const normalizeType = function normalizeType(type) {
+  const normalizeType = function normalizeType(type, isPrimaryKey) {
+    if (isPrimaryKey) {
+      return 'STRING';
+    }
     switch (type.toLowerCase()) {
       // Default types from sails-hook-orm (for automigrations)
       case '_number':
@@ -44,6 +47,16 @@ module.exports = function buildSchema(tableName, definition) {
       // (FUTURE: log warnings suggesting proper usage when any of these synonyms are invoked)
       case 'varchar':
         return 'STRING';
+      case 'bigint':
+        return 'LONG';
+      case 'json':
+        return 'ANY';
+      case 'boolean':
+        return 'BOOLEAN';
+      case 'text':
+        return 'STRING';
+      case 'integer':
+        return 'INTEGER';
 
       default:
         return type;
@@ -58,7 +71,7 @@ module.exports = function buildSchema(tableName, definition) {
       attribute.type = val;
     }
 
-    const type = normalizeType(attribute.columnType);
+    const type = normalizeType(attribute.columnType, attribute.primaryKey);
     const unique = attribute.unique && 'MANDATORY TRUE';
     const nullable = attribute.notNull && 'NOTNULL TRUE';
 
@@ -70,7 +83,7 @@ module.exports = function buildSchema(tableName, definition) {
     return `CREATE PROPERTY ${tableName}.\`${name}\` ${type} ${constraints}`;
   });
 
-  // Grab the Primary Key
+  // // Grab the Primary Key
   // const primaryKeys = _.keys(
   //   _.pick(definition, attribute => attribute.primaryKey),
   // );

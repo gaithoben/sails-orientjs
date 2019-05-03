@@ -48,15 +48,14 @@
     "eslint": "^5.4.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.17.2",
-    "waterline-adapter-tests": "^1.0.0-6",
-    "semantic-release": "^15.13.3"
+    "semantic-release": "^15.13.3",
+    "waternile-adapter-tests": "^1.0.8"
   },
   "waterlineAdapter": {
     "type": "sails-orientjs",
     "interfaces": [
       "semantic",
-      "queryable",
-      "associations"
+      "queryable"
     ],
     "features": []
   },

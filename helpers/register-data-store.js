@@ -34,19 +34,22 @@ module.exports = require('machine').build({
     },
 
     models: {
-      description: 'The Waterline models that will be used with this data store.',
+      description:
+        'The Waterline models that will be used with this data store.',
       required: true,
       example: '===',
     },
 
     datastores: {
-      description: 'An object containing all of the data stores that have been registered.',
+      description:
+        'An object containing all of the data stores that have been registered.',
       required: true,
       example: '===',
     },
 
     modelDefinitions: {
-      description: 'An object containing all of the model definitions that have been registered.',
+      description:
+        'An object containing all of the model definitions that have been registered.',
       required: true,
       example: '===',
     },
@@ -80,7 +83,9 @@ module.exports = require('machine').build({
 
     // Validate that the datastore isn't already initialized
     if (datastores[identity]) {
-      return exits.badConfiguration(new Error(`Datastore \`${identity}\` is already registered.`));
+      return exits.badConfiguration(
+        new Error(`Datastore \`${identity}\` is already registered.`),
+      );
     }
 
     //  ╦  ╦╔═╗╦  ╦╔╦╗╔═╗╔╦╗╔═╗  ┌─┐┌─┐┌┐┌┌─┐┬┌─┐
@@ -99,7 +104,9 @@ module.exports = require('machine').build({
 
     if (!hasURL && !config.database) {
       return exits.badConfiguration(
-        new Error(`Datastore  \`${identity}\` config is missing a value for the database name.`),
+        new Error(
+          `Datastore  \`${identity}\` config is missing a value for the database name.`,
+        ),
       );
     }
 
@@ -115,7 +122,8 @@ module.exports = require('machine').build({
         // Ensure that the model's primary key has either `autoIncrement` or `required`
         if (
           primaryKeyAttr.required !== true
-          && (!primaryKeyAttr.autoMigrations || primaryKeyAttr.autoMigrations.autoIncrement !== true)
+          && (!primaryKeyAttr.autoMigrations
+            || primaryKeyAttr.autoMigrations.autoIncrement !== true)
         ) {
           throw new Error(
             `In model \`${modelIdentity}\`, primary key \`${
@@ -137,6 +145,7 @@ module.exports = require('machine').build({
     // `machinepack-postgresql` driver uses to communicate with the database.  The actual form of the
     // manager is completely dependent on this adapter.  In other words, it is custom and database-specific.
     // This is where you should store any custom metadata specific to this datastore.
+
     return OrientDB.createManager({
       config,
       meta: _.omit(config, ['adapter', 'url', 'identity', 'schema']),
@@ -208,7 +217,7 @@ module.exports = require('machine').build({
               );
             }
 
-            modelDefinitions[modelinfo.identity] = {
+            modelDefinitions[modelinfo.tableName] = {
               primaryKey: modelinfo.primaryKey,
               attributes: modelinfo.definition,
               definition: modelinfo.definition,

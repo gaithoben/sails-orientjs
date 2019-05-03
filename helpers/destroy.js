@@ -92,6 +92,7 @@ module.exports = require('machine').build({
     let statement;
     try {
       statement = Helpers.query.compileStatement({
+        pkColumnName,
         model: query.using,
         method: 'destroy',
         criteria: query.criteria,
@@ -130,11 +131,14 @@ module.exports = require('machine').build({
       let secondaryWhereClause = statement.whereClause;
 
       if (fetchRecords) {
-        toDestroy = await session
+        let deffered = session
           .select('*')
-          .from(`${Helpers.query.capitalize(statement.from)}`)
-          .where(statement.whereClause)
-          .all();
+          .from(`${Helpers.query.capitalize(statement.from)}`);
+        if (statement.whereClause) {
+          deffered = deffered.where(statement.whereClause);
+        }
+
+        toDestroy = await deffered.all();
 
         const values = _.pluck(toDestroy, pkColumnName);
 
@@ -142,15 +146,21 @@ module.exports = require('machine').build({
           .map(v => (Number(v) ? v : `'${v}'`))
           .join(', ')}]`;
       }
-
-      await session
+      let deffered = session
         .delete()
-        .from(Helpers.query.capitalize(statement.from))
-        .where(secondaryWhereClause)
-        .all();
+        .from(Helpers.query.capitalize(statement.from));
 
-      Helpers.connection.releaseSession(session, leased);
+      if (secondaryWhereClause) {
+        deffered = deffered.where(secondaryWhereClause);
+      }
+
+      await deffered.all();
+
+      await Helpers.connection.releaseSession(session, leased);
     } catch (error) {
+      if (session) {
+        await Helpers.connection.releaseSession(session, leased);
+      }
       return exits.badConnection(error);
     }
 

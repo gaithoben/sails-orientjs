@@ -43,6 +43,19 @@ module.exports = function compileStatement(options) {
     throw new Error('Criteria must contain a WHERE clause.');
   }
 
+  function specialValue(val) {
+    if (_.isObject(val)) {
+      return JSON.stringify(val);
+    }
+    if (Number(val)) {
+      return val;
+    }
+    if (_.isString(val)) {
+      return `'${val}'`;
+    }
+    return val;
+  }
+
   const statement = passedcriteria.where;
 
   //   const statement = {
@@ -57,8 +70,13 @@ module.exports = function compileStatement(options) {
 
   function getInStatement(arr) {
     let str = '';
-    if (Array.isArray(arr) && arr.length > 1) {
-      str = `IN [${arr.map(v => (Number(v) ? v : `'${v}'`))}]`;
+    if (Array.isArray(arr) && arr.length > 0) {
+      if (arr.length === 1) {
+        const v = arr[0];
+        str = `= ${specialValue(v)}`;
+      } else {
+        str = `IN [${arr.map(v => (Number(v) ? v : `'${v}'`))}]`;
+      }
     } else {
       throw new Error('the IN statement expects an array of values.');
     }
@@ -68,8 +86,13 @@ module.exports = function compileStatement(options) {
 
   function getNotInStatement(arr) {
     let str = '';
-    if (Array.isArray(arr) && arr.length > 1) {
-      str = `NOT IN [${arr.map(v => (Number(v) ? v : `'${v}'`))}]`;
+    if (Array.isArray(arr) && arr.length > 0) {
+      if (arr.length === 1) {
+        const v = arr[0];
+        str = `!= ${specialValue(v)}`;
+      } else {
+        str = `NOT IN [${arr.map(v => (Number(v) ? v : `'${v}'`))}]`;
+      }
     } else {
       throw new Error('the IN statement expects an array of values.');
     }
@@ -91,9 +114,12 @@ module.exports = function compileStatement(options) {
   }
 
   function getComparison(obj) {
+    if (_.isEmpty(obj)) {
+      return '';
+    }
     let str = null;
     _.each(obj, (value, key) => {
-      switch (key.toLowerCase()) {
+      switch (`${key}`.toLowerCase()) {
         case '$gt':
           str = `> ${value}`;
           return;
@@ -111,10 +137,10 @@ module.exports = function compileStatement(options) {
           return;
 
         case '>':
-          str = `> ${value}`;
+          str = Number(value) ? `> ${value}` : `> '${value}'`;
           return;
         case '>=':
-          str = `>= ${value}`;
+          str = Number(value) ? `>= ${value}` : `>= '${value}'`;
           return;
         case '<':
           str = `< ${value}`;
@@ -123,10 +149,17 @@ module.exports = function compileStatement(options) {
           str = `<= ${value}`;
           return;
         case '<>':
-          str = `<> ${value}`;
+          str = `<> ${specialValue(value)}`;
           return;
         case '!=':
-          str = `<> ${value}`;
+          str = `<> ${specialValue(value)}`;
+          return;
+
+        case 'like':
+          str = `like '${value}'`;
+          return;
+        case '$like':
+          str = `$like '${value}'`;
           return;
         case '$in':
           str = getInStatement(value);
@@ -153,14 +186,33 @@ module.exports = function compileStatement(options) {
   function getAndStatement(obj) {
     const criteria = [];
     const str = null;
+    if (_.isEmpty(obj)) {
+      return '';
+    }
     _.each(obj, (value, key) => {
-      if (key.toLowerCase() === '$or') {
+      if (key.toLowerCase() === '$or' || key.toLowerCase() === 'or') {
         criteria.push(`(${getOrStatement(value)})`);
         return;
       }
 
-      if (key.toLowerCase() === '$between') {
+      if (key.toLowerCase() === 'and' || key.toLowerCase() === '$and') {
+        criteria.push(`(${getAndArrayStatement(value)})`);
+        return;
+      }
+
+      if (key.toLowerCase() === '$between' || key.toLowerCase() === 'between') {
         criteria.push(`BETWEEN ${getAndStatement(value)}`);
+        return;
+      }
+
+      if (_.isArray(value)) {
+        let inarr = '';
+        if (value.length === 1) {
+          const v = value[0];
+          inarr = `= ${specialValue(v)}`;
+        }
+        inarr = `IN [${value.map(v => specialValue(v))}]`;
+        criteria.push(inarr);
         return;
       }
 
@@ -193,9 +245,29 @@ module.exports = function compileStatement(options) {
     return orst.join(' OR ');
   }
 
+  function getAndArrayStatement(arr) {
+    const andst = [];
+    if (Array.isArray(arr) && arr.length > 1) {
+      _.each(arr, (obj) => {
+        andst.push(getAndStatement(obj));
+      });
+    } else {
+      throw new Error(
+        'We expect an array of more than one objects on the OR criteria',
+      );
+    }
+    return andst.join(' AND ');
+  }
+
   function hasSelectFields() {
+    if (
+      _.isEqual(passedcriteria.select, ['*'])
+      || _.isEqual(passedcriteria.select, '*')
+    ) {
+      return false;
+    }
     if (Array.isArray(passedcriteria.select)) {
-      if (passedcriteria.length > 0) {
+      if (passedcriteria.select.length > 0) {
         return true;
       }
     }
@@ -221,6 +293,26 @@ module.exports = function compileStatement(options) {
     return null;
   }
 
+  // Check for sort
+  let sortClauseArray = [];
+  if (passedcriteria.sort) {
+    if (passedcriteria.sort.length > 0) {
+      sortClauseArray = passedcriteria.sort
+        .map(c => getSortClause(c))
+        .filter(c => !!c);
+    }
+  }
+
+  function getSortClause(sortObj) {
+    let str = '';
+    if (_.isObject(sortObj)) {
+      _.each(sortObj, (value, key) => {
+        str += `${key} ${value}`;
+      });
+    }
+    return str;
+  }
+
   const compiledcriteria = getAndStatement(statement);
 
   const obj = {
@@ -233,6 +325,7 @@ module.exports = function compileStatement(options) {
       ? selectAttributes(passedcriteria.select).join(', ')
       : '*',
     whereClause: compiledcriteria,
+    sortClauseArray,
     numericAttrName: getNumericAttrName(),
     values: values || {},
   };
