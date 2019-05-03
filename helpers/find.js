@@ -89,9 +89,6 @@ module.exports = require('machine').build({
 
     // // Compile the original Waterline Query
 
-    // eslint-disable-next-line no-console
-    console.log('PASSED ', query.criteria);
-
     let statement;
     try {
       statement = Helpers.query.compileStatement({

@@ -311,6 +311,9 @@ module.exports = {
       error: function error(err) {
         return done(err);
       },
+      notUnique: function error(err) {
+        return done(flaverr('E_UNIQUE', err));
+      },
       success: function success(report) {
         return done(undefined, report.record);
       },
@@ -413,9 +416,7 @@ module.exports = {
         return done(err);
       },
       notUnique: function error(errInfo) {
-        const e = new Error(errInfo.message);
-        e.footprint = errInfo.footprint;
-        return done(e);
+        return done(flaverr('E_UNIQUE', errInfo));
       },
       success: function success(report) {
         if (report) {

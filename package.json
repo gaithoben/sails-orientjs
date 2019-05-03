@@ -53,11 +53,10 @@
   },
   "waterlineAdapter": {
     "type": "sails-orientjs",
-    "interfaces": [
-      "semantic",
-      "queryable"
-    ],
-    "features": []
+    "interfaces": [],
+    "features": [
+      "unique"
+    ]
   },
   "config": {
     "commitizen": {

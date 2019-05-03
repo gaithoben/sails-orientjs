@@ -62,7 +62,6 @@ module.exports = require('machine').build({
     // Dependencies
     const _ = require('@sailshq/lodash');
     const Helpers = require('./private');
-
     // Store the Query input for easier access
     const { query } = inputs;
     query.meta = query.meta || {};
@@ -163,6 +162,9 @@ module.exports = require('machine').build({
       if (session) {
         // Close the Session.
         await Helpers.connection.releaseSession(session);
+      }
+      if (err.code === 5) {
+        return exits.notUnique(err);
       }
       return exits.badConnection(err);
     }

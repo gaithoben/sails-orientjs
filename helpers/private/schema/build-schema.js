@@ -83,6 +83,16 @@ module.exports = function buildSchema(tableName, definition) {
     return `CREATE PROPERTY ${tableName}.\`${name}\` ${type} ${constraints}`;
   });
 
+  // Grab the Unique Columns and Create Indexes
+
+  const indexes = _.map(definition, (attribute, name) => {
+    const unique = Boolean(attribute.unique);
+    if (unique) {
+      return `CREATE INDEX ${tableName}.\`${name}\` UNIQUE`;
+    }
+    return '';
+  });
+
   // // Grab the Primary Key
   // const primaryKeys = _.keys(
   //   _.pick(definition, attribute => attribute.primaryKey),
@@ -94,7 +104,7 @@ module.exports = function buildSchema(tableName, definition) {
   // ]).join(', ');
 
   // const schema = _.compact([columns, constraints]).join(', ');
-  const schema = columns.join(';\n ');
+  const schema = [...columns, ...indexes].filter(c => !!c).join(';\n ');
 
   return schema;
 };

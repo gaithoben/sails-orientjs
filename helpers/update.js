@@ -62,6 +62,7 @@ module.exports = require('machine').build({
     // Dependencies
     const _ = require('@sailshq/lodash');
     const Helpers = require('./private');
+    const flaverr = require('flaverr');
 
     const { query, models } = inputs;
 
@@ -184,6 +185,18 @@ module.exports = require('machine').build({
     } catch (error) {
       if (session) {
         await Helpers.connection.releaseSession(session, leased);
+      }
+
+      if (error.code === 5) {
+        return exits.notUnique(
+          flaverr(
+            {
+              name: 'update error',
+              code: 'E_UNIQUE',
+            },
+            error,
+          ),
+        );
       }
       return exits.badConnection(error);
     }
