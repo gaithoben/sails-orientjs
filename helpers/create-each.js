@@ -70,6 +70,7 @@ module.exports = require('machine').build({
     // Dependencies
     const _ = require('@sailshq/lodash');
     const Helpers = require('./private');
+    const SqlString = require('sqlstring');
 
     // Store the Query input for easier access
     query.meta = query.meta || {};
@@ -159,7 +160,7 @@ module.exports = require('machine').build({
         return val;
       }
       if (_.isString(val)) {
-        return `'${val}'`;
+        return `${SqlString.escape(val)}`;
       }
       return val;
     }
@@ -189,8 +190,7 @@ module.exports = require('machine').build({
       });
 
       sql += 'commit;\n';
-      //   sql += `return [${rs.join(', ')}];`;
-
+      //   sql += `return [${rs.join(', ')}];`;å
       //   const results = await session.batch(sql).all();
       //   createdRecords = _.flatten(results[0].value);
       await session.batch(sql).all();

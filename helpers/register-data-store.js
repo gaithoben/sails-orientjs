@@ -207,6 +207,8 @@ module.exports = require('machine').build({
           // FUTURE: Remove the need for this step by giving the adapter some kind of simpler access
           // to the orm instance, or an accessor function for models.
           // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+          const dbSchema = {};
           _.each(models, (modelinfo) => {
             // console.log('in datastore: `%s`  ……tracking physical model:  `%s` (tableName: `%s`)',datastoreName, phModelInfo.identity, phModelInfo.tableName);
             if (modelDefinitions[modelinfo.identity]) {
@@ -217,7 +219,16 @@ module.exports = require('machine').build({
               );
             }
 
-            modelDefinitions[modelinfo.tableName] = {
+            if (!modelinfo.classType) {
+              throw new Error(
+                `The classType must be defined in the model: \`${
+                  modelinfo.identity
+                }\`, Please define a valid classTYpe for each model. Should be one of Vertex/Document/Edge  (If you get stumped, reach out at http://github.com/gaithoben/sails-orientjs.)`,
+              );
+            }
+
+            dbSchema[modelinfo.tableName] = {
+              classType: modelinfo.classType,
               primaryKey: modelinfo.primaryKey,
               attributes: modelinfo.definition,
               definition: modelinfo.definition,
@@ -225,8 +236,16 @@ module.exports = require('machine').build({
               identity: modelinfo.identity,
             };
 
+            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            // The below code would be unnecessary if `modelinfo.identity` were passed in the define method.
+            // We need this in the define method so that we can get the classType for further definition.
+            // So lets create schema with Key type `tableName` because its passed on define method
+            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
             // console.log('\n\nphModelInfo:',util.inspect(phModelInfo,{depth:5}));
           }); // </each phModel>
+
+          modelDefinitions[identity] = dbSchema;
         } catch (e) {
           return exits.error(e);
         }

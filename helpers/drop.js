@@ -76,11 +76,12 @@ module.exports = require('machine').build({
         results = await session.batch(batch).all();
         await Helpers.connection.releaseSession(session, leased);
       } catch (error) {
-        if (error.code && error.code === 5) {
+        if (error.code && (error.code === 5 || error.code === '5')) {
+          // console.log(`Error while dropping ${tableName}`, error.code);
           await Helpers.connection.releaseSession(session, leased);
           return exits.success();
         }
-        return exits.badConnection(error);
+        return exits.badConnection(`Error while dropping ${tableName}${error}`);
       }
       return exits.success(results);
     } catch (error) {

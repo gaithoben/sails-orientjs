@@ -115,11 +115,13 @@ module.exports = require('machine').build({
         query.meta,
       );
 
-      result = await session
+      let deffered = session
         .select('count(*)')
-        .from(Helpers.query.capitalize(statement.from))
-        .where(statement.whereClause)
-        .scalar();
+        .from(Helpers.query.capitalize(statement.from));
+      if (statement.whereClause) {
+        deffered = deffered.where(statement.whereClause);
+      }
+      result = await deffered.scalar();
 
       await Helpers.connection.releaseSession(session, leased);
     } catch (error) {

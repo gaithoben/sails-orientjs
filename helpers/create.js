@@ -147,9 +147,7 @@ module.exports = require('machine').build({
 
       // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       // Model the query OR INSERT USING THE  Query Builder! 👍🏽
-      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-      // eslint-disable-next-line no-console
+      // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -å
 
       // Execute sql using the driver acquired session.
 

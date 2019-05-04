@@ -32,6 +32,13 @@ module.exports = require('machine').build({
       example: {},
     },
 
+    model: {
+      description:
+        'The model definition associated with the schema we want to build.',
+      required: true,
+      example: {},
+    },
+
     meta: {
       friendlyName: 'Meta (custom)',
       description: 'Additional stuff to pass to the driver.',
@@ -58,6 +65,19 @@ module.exports = require('machine').build({
     const _ = require('@sailshq/lodash');
     const Helpers = require('./private');
 
+    const { model } = inputs;
+
+    if (!model.tableName) {
+      return exits.error('TableName is not defined in the model.');
+    }
+
+    if (model.tableName !== inputs.tableName) {
+      return exits.error(
+        `Error in the definition of tableName property of the model associated with .${
+          inputs.tableName
+        }`,
+      );
+    }
     // Set a flag if a leased connection from outside the adapter was used or not.
     const leased = _.has(inputs.meta, 'leasedConnection');
 
@@ -80,11 +100,33 @@ module.exports = require('machine').build({
       schema = Helpers.schema.buildSchema(tableName, inputs.definition);
 
       // Build Query
-      const batch = `CREATE Class ${Helpers.query.capitalize(
-        tableName,
-      )};\n ${schema};`;
 
-      // TODO: Extends, V, E
+      let batch = 'CREATE CLASS';
+      // Determine whether we're creating Vertex, Edge or Just a document
+
+      console.log(`Defining the model ${tableName} of type ${model.classType}`);
+
+      switch (model.classType) {
+        case 'Document':
+          batch = `CREATE CLASS ${Helpers.query.capitalize(tableName)}`;
+          break;
+        case 'Vertex':
+          batch = `CREATE CLASS ${Helpers.query.capitalize(
+            tableName,
+          )} EXTENDS V`;
+          break;
+        case 'Edge':
+          batch = `CREATE CLASS ${Helpers.query.capitalize(
+            tableName,
+          )} EXTENDS E`;
+          break;
+        default:
+          return exits.error(
+            `The classtype associated with model ${tableName} is not known. Should be one of Document/Vertex/Edge`,
+          );
+      }
+
+      batch = `${batch};\n ${schema};`;
 
       results = await session.batch(batch).all();
 

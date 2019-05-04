@@ -66,6 +66,7 @@ module.exports = require('machine').build({
 
     // Find the model definition
     const WLModel = inputs.models[query.using];
+
     if (!WLModel) {
       return exits.invalidDatastore();
     }

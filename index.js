@@ -301,7 +301,7 @@ module.exports = {
       );
     }
     const datastore = registeredDatastores[datastoreName];
-    const models = registeredModels;
+    const models = registeredModels[datastoreName];
 
     return Helpers.create({
       datastore,
@@ -352,7 +352,7 @@ module.exports = {
       );
     }
 
-    const models = registeredModels;
+    const models = registeredModels[datastoreName];
 
     return Helpers.createEach({
       datastore,
@@ -405,7 +405,7 @@ module.exports = {
         ),
       );
     }
-    const models = registeredModels;
+    const models = registeredModels[datastoreName];
 
     return Helpers.update({
       datastore,
@@ -449,7 +449,7 @@ module.exports = {
   destroy(datastoreName, query, done) {
     // Look up the datastore entry (manager/driver/config).
     const datastore = registeredDatastores[datastoreName];
-    const models = registeredModels;
+    const models = registeredModels[datastoreName];
 
     // Sanity check:
     if (_.isUndefined(datastore)) {
@@ -506,7 +506,7 @@ module.exports = {
    */
   find(datastoreName, query, done) {
     const datastore = registeredDatastores[datastoreName];
-    const models = registeredModels;
+    const models = registeredModels[datastoreName];
 
     // Sanity check:
     if (_.isUndefined(datastore)) {
@@ -548,7 +548,7 @@ module.exports = {
   count(datastoreName, query, done) {
     // Look up the datastore entry (manager/driver/config).
     const datastore = registeredDatastores[datastoreName];
-    const models = registeredModels;
+    const models = registeredModels[datastoreName];
 
     // Sanity check:
     if (_.isUndefined(datastore)) {
@@ -589,7 +589,7 @@ module.exports = {
   sum(datastoreName, query, done) {
     // Look up the datastore entry (manager/driver/config).
     const datastore = registeredDatastores[datastoreName];
-    const models = registeredModels;
+    const models = registeredModels[datastoreName];
 
     // Sanity check:
     if (_.isUndefined(datastore)) {
@@ -630,7 +630,7 @@ module.exports = {
   avg(datastoreName, query, done) {
     // Look up the datastore entry (manager/driver/config).
     const datastore = registeredDatastores[datastoreName];
-    const models = registeredModels;
+    const models = registeredModels[datastoreName];
     // Sanity check:
     if (_.isUndefined(datastore)) {
       return done(
@@ -697,6 +697,18 @@ module.exports = {
     // Look up the datastore entry (manager/driver/config).
     const datastore = registeredDatastores[datastoreName];
 
+    const models = registeredModels[datastoreName];
+    const model = models[tableName];
+
+    // Sanity check:
+    if (_.isUndefined(model)) {
+      return done(
+        new Error(
+          `The model with tableName (\`${tableName}\`) has not been defined. Could not get the classType for the model associated with ${tableName})`,
+        ),
+      );
+    }
+
     // Sanity check:
     if (_.isUndefined(datastore)) {
       return done(
@@ -710,6 +722,7 @@ module.exports = {
       datastore,
       tableName,
       definition,
+      model,
       meta,
     }).switch({
       error: function error(err) {

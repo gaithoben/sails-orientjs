@@ -4,6 +4,7 @@
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 const _ = require('@sailshq/lodash');
+const SqlString = require('sqlstring');
 
 module.exports = function compileStatement(options) {
   const {
@@ -51,7 +52,7 @@ module.exports = function compileStatement(options) {
       return val;
     }
     if (_.isString(val)) {
-      return `'${val}'`;
+      return `${SqlString.escape(val)}`;
     }
     return val;
   }
@@ -137,10 +138,10 @@ module.exports = function compileStatement(options) {
           return;
 
         case '>':
-          str = Number(value) ? `> ${value}` : `> '${value}'`;
+          str = `> ${specialValue(value)}`;
           return;
         case '>=':
-          str = Number(value) ? `>= ${value}` : `>= '${value}'`;
+          str = `>= ${specialValue(value)}`;
           return;
         case '<':
           str = `< ${value}`;
@@ -156,10 +157,10 @@ module.exports = function compileStatement(options) {
           return;
 
         case 'like':
-          str = `like '${value}'`;
+          str = `like ${specialValue(value)}`;
           return;
         case '$like':
-          str = `$like '${value}'`;
+          str = `$like ${specialValue(value)}`;
           return;
         case '$in':
           str = getInStatement(value);
@@ -221,7 +222,7 @@ module.exports = function compileStatement(options) {
         return;
       }
 
-      criteria.push(`${key} = ${Number(value) ? value : `'${value}'`}`);
+      criteria.push(`${key} = ${specialValue(value)}`);
     });
 
     if (str) {
