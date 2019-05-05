@@ -1,6 +1,6 @@
 {
   "name": "sails-orientjs",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A sails-orientjs adapter for Sails / Waterline",
   "main": "index.js",
   "scripts": {
@@ -16,6 +16,10 @@
   },
   "keywords": [
     "sails-orientjs",
+    "sails-orientdb",
+    "orientdb",
+    "orientjs",
+    "sails-orient",
     "adapter",
     "sails",
     "sails.js",

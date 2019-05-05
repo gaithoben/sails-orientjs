@@ -101,10 +101,8 @@ module.exports = require('machine').build({
 
       // Build Query
 
-      let batch = 'CREATE CLASS';
+      let batch = '';
       // Determine whether we're creating Vertex, Edge or Just a document
-
-      console.log(`Defining the model ${tableName} of type ${model.classType}`);
 
       switch (model.classType) {
         case 'Document':
